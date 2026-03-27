@@ -1,16 +1,36 @@
-[project]
-name = "hh-vacancies-analyzer"
+[tool.poetry]
+name = "hh_vacancies_analyzer"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "Olesia Laskovets",email = "olesya_izvarina@mail.ru"}
-]
+description = "Анализ вакансий с hh.ru"
+authors = ["Olesia Laskovets <olesya_izvarina@mail.ru>"]
+packages = [{ include = "hh_vacancies_analyzer" }]
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-]
+license = "MIT"
 
+[tool.poetry.dependencies]
+python = "^3.13"
+requests = "^2.31.0"
+psycopg2-binary = "^2.9.9"
+python-dotenv = "^1.1.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+mypy = "^1.5.1"
+flake8 = "^6.1.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=1.5.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+skip-string-normalization = true
+
+
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
