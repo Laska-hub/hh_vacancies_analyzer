@@ -1,3 +1,4 @@
+import logging
 from contextlib import contextmanager
 from typing import Generator
 
@@ -5,10 +6,16 @@ import psycopg2
 from psycopg2.extensions import connection
 from psycopg2.extensions import cursor as psycopg2_cursor
 
-from hh_vacancies_analyzer.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+from hh_vacancies_analyzer.config import (DB_HOST, DB_NAME, DB_PASSWORD,
+                                          DB_PORT, DB_USER)
+
+logger = logging.getLogger(__name__)
 
 
 def get_connection() -> connection:
+    """
+    Создает и возвращает подключение к базе данных.
+    """
     return psycopg2.connect(
         host=DB_HOST,
         database=DB_NAME,
@@ -22,6 +29,7 @@ def get_connection() -> connection:
 def get_cursor() -> Generator[psycopg2_cursor, None, None]:
     """
     Контекстный менеджер для работы с курсором базы данных.
+    Автоматически управляет транзакцией и закрытием соединения.
     """
     conn = get_connection()
     try:
@@ -34,7 +42,7 @@ def get_cursor() -> Generator[psycopg2_cursor, None, None]:
 
 def create_database() -> None:
     """
-    Создание базы данных, если она не существует
+    Создает базу данных, если она не существует.
     """
     try:
         conn = psycopg2.connect(
@@ -45,9 +53,9 @@ def create_database() -> None:
             port=DB_PORT,
         )
         conn.close()
-        print(f"База данных '{DB_NAME}' уже существует, пропускаем создание.")
+        logger.info("База данных '%s' уже существует", DB_NAME)
+
     except psycopg2.OperationalError:
-        # Соединение не удалось — создаём базу данных через соединение с postgres
         conn = psycopg2.connect(
             host=DB_HOST,
             database="postgres",
@@ -56,7 +64,10 @@ def create_database() -> None:
             port=DB_PORT,
         )
         conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(f'CREATE DATABASE "{DB_NAME}"')
-        conn.close()
-        print(f"База данных '{DB_NAME}' успешно создана.")
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(f'CREATE DATABASE "{DB_NAME}"')
+            logger.info("База данных '%s' успешно создана", DB_NAME)
+        finally:
+            conn.close()
