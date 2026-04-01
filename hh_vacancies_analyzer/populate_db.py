@@ -1,29 +1,41 @@
 # hh_vacancies_analyzer/populate_db.py
-"""Заполняет базу компаний и вакансий, используя HH API и manager."""
+"""Заполнение базы данных."""
 
 import logging
 from typing import Any, Dict, List
 
-from hh_vacancies_analyzer.api import fetch_companies, fetch_vacancies
+from hh_vacancies_analyzer.api import get_companies, get_vacancies
 from hh_vacancies_analyzer.manager import insert_company, insert_vacancy
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+
+
+def _extract_salary(vacancy: Dict[str, Any]) -> tuple[int | None, int | None]:
+    salary = vacancy.get("salary") or {}
+    return salary.get("from"), salary.get("to")
 
 
 def main() -> None:
-    """Заполняет базу компаний и вакансий."""
-    logger.info("Запуск populate_db.py")
-    companies: List[Dict[str, Any]] = fetch_companies()
+    logger.info("Запуск заполнения базы")
+
+    companies: List[Dict[str, Any]] = get_companies()
+
     for company in companies:
-        company_id: int = insert_company(company)
-        vacancies: List[Dict[str, Any]] = fetch_vacancies(company_id)
+        company_id = insert_company(company)
+
+        vacancies = get_vacancies(company_id)
+
         for vacancy in vacancies:
-            insert_vacancy(vacancy, company_id)
-    logger.info("Заполнение базы завершено успешно!")
+            salary_from, salary_to = _extract_salary(vacancy)
 
+            vacancy_data: Dict[str, Any] = {
+                "id": vacancy["id"],
+                "name": vacancy.get("name"),
+                "salary_from": salary_from,
+                "salary_to": salary_to,
+                "alternate_url": vacancy.get("alternate_url"),
+            }
 
-if __name__ == "__main__":
-    main()
+            insert_vacancy(vacancy_data, company_id)
+
+    logger.info("База успешно заполнена")

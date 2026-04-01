@@ -13,9 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_connection() -> connection:
-    """
-    Создает и возвращает подключение к базе данных.
-    """
     return psycopg2.connect(
         host=DB_HOST,
         database=DB_NAME,
@@ -27,23 +24,16 @@ def get_connection() -> connection:
 
 @contextmanager
 def get_cursor() -> Generator[psycopg2_cursor, None, None]:
-    """
-    Контекстный менеджер для работы с курсором базы данных.
-    Автоматически управляет транзакцией и закрытием соединения.
-    """
     conn = get_connection()
     try:
-        with conn:
-            with conn.cursor() as cursor:
-                yield cursor
+        with conn.cursor() as cursor:
+            yield cursor
+        conn.commit()
     finally:
         conn.close()
 
 
 def create_database() -> None:
-    """
-    Создает базу данных, если она не существует.
-    """
     try:
         conn = psycopg2.connect(
             host=DB_HOST,
@@ -53,8 +43,7 @@ def create_database() -> None:
             port=DB_PORT,
         )
         conn.close()
-        logger.info("База данных '%s' уже существует", DB_NAME)
-
+        logger.info("БД уже существует")
     except psycopg2.OperationalError:
         conn = psycopg2.connect(
             host=DB_HOST,
@@ -65,9 +54,8 @@ def create_database() -> None:
         )
         conn.autocommit = True
 
-        try:
-            with conn.cursor() as cur:
-                cur.execute(f'CREATE DATABASE "{DB_NAME}"')
-            logger.info("База данных '%s' успешно создана", DB_NAME)
-        finally:
-            conn.close()
+        with conn.cursor() as cursor:
+            cursor.execute(f'CREATE DATABASE "{DB_NAME}"')
+
+        conn.close()
+        logger.info("БД создана")
